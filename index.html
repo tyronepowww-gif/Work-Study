@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>WorkWell</title>
+<style>
+:root{--bg:#14202e;--panel:#1e2e42;--line:#33475f;--tx:#eaf0f6;--mut:#9fb0c3;--ac:#ffb020;--acx:#1a1200;--ok:#5fd18a}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.5 "Avenir Next","Segoe UI",system-ui,sans-serif;padding-top:env(safe-area-inset-top,0)}
+#app{max-width:560px;margin:0 auto;padding:18px 16px 96px}
+h1{font-size:1.9rem;line-height:1.15;margin:0 0 14px}h3{margin:20px 0 8px;font-size:1rem;color:var(--mut)}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer;border:1px solid var(--line);background:var(--panel);border-radius:6px;padding:10px 14px}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:3px solid var(--ac);outline-offset:2px}
+input,select,textarea{background:#0f1925;border:1px solid var(--line);border-radius:6px;padding:10px;width:100%}
+label{display:block;margin:8px 0}
+.g{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px}
+.b{font-size:2rem;font-weight:700;padding:18px 0}.b small{display:block;font-size:.8rem;font-weight:400;color:var(--mut)}
+.b.on,.chip.on{border-color:var(--ac);color:var(--ac)}
+.row{display:flex;gap:8px}.row button{white-space:nowrap}
+.chips{display:flex;flex-wrap:wrap;gap:8px}.chip{padding:8px 12px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:18px;margin:10px 0 16px}
+.card h1{margin:6px 0}.m{color:var(--mut);margin:4px 0}
+.start{width:100%;background:var(--ac);color:var(--acx);font-size:1.5rem;font-weight:800;padding:18px;border:0}
+.ghost{width:100%;margin-top:10px;background:none}
+.int{display:flex;align-items:center;gap:12px;margin-top:8px}.int b{font-size:1.3rem}
+.tm{font-size:4.5rem;font-weight:800;line-height:1;margin:6px 0}
+.bar{height:8px;background:#0f1925;border-radius:4px;overflow:hidden;margin:12px 0}.bar i{display:block;height:100%;background:var(--ac)}
+.at{display:grid;grid-template-columns:7rem 1fr 3rem;gap:10px;align-items:center;margin:6px 0}
+.li{display:flex;gap:10px;align-items:center;margin:4px 0}.li input{width:auto}
+nav{position:fixed;left:0;right:0;bottom:0;display:flex;background:#0f1925;border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0)}
+nav button{flex:1;border:0;border-radius:0;background:none;padding:16px 4px}nav button.on{color:var(--ac)}
+.warn{color:var(--ac)}.ov{background:var(--panel);border:2px solid var(--ac);border-radius:8px;padding:14px;margin:12px 0}
+table{width:100%;border-collapse:collapse;font-size:.9rem}td,th{padding:4px 6px;border-bottom:1px solid var(--line);text-align:left}
+@media (prefers-reduced-motion:no-preference){.bar i{transition:width .25s linear}}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+const K='workwell.v1',CATS=['BRAIN','BODY','SKILL','RECOVERY','LIFE'],ATTRS=['Discipline','Focus','Knowledge','Skill','Recovery'],BUCKETS=[2,5,7,15,30,60],XPT=[[0,0],[2,2],[5,5],[15,20],[30,50],[60,120]],ICO={BRAIN:'🧠',BODY:'💪',SKILL:'🎯',RECOVERY:'🌿',LIFE:'🏠'};
+const RAW=[
+['chess','Chess puzzles','BRAIN','',['Knowledge','Focus'],'text',3,['Set up=Open puzzles at your rating.','Solve=Solve {n} puzzles, no hints.|Find the best move in each, no engine.','Review=Replay the one you missed.|Name the motif in the hardest one.']],
+['math','Mental math','BRAIN','',['Knowledge','Focus'],'reps',2,['Warm up=Easy sums, answer aloud.','Burst={n} problems at speed.|Multiply two-digit numbers, {n} times.','Check=Redo your slowest problem.']],
+['memory','Memory drill','BRAIN','',['Knowledge'],'text',3,['Load=Read a list of {n} items once.|Pick {n} facts to memorize.','Hold=Look away and recite them.','Recall=Write them from memory, fix errors.']],
+['lang','Language','BRAIN','',['Knowledge'],'text',3,['Review=Run through yesterday\'s words.','New=Learn {n} new words or phrases.','Use=Say three sentences using them.']],
+['read','Reading','BRAIN','',['Knowledge'],'text',5,['Open=Open your book, no phone nearby.','Read=Read without stopping.','Retain=Summarize what you read in one sentence.']],
+['str','Strength','BODY','',['Discipline'],'reps',2,['Warm up=Arm circles and hip hinges.','Work=Pushups, {n} reps per set.|Squats, {n} reps per set.','Finish=Slow last set, then stretch.']],
+['shadow','Shadowboxing','BODY','',['Discipline','Focus'],'tap',3,['Move=Light footwork, hands up.','Rounds=Combos at {s}-second rounds.','Cool=Walk it out, shake the arms loose.']],
+['bal','Balance','BODY','',['Recovery'],'tap',2,['Stance=Stand on one leg, eyes forward.','Hold=Hold {s} seconds each side.|Eyes closed for a few breaths.','Switch=Slow reach with the free leg.']],
+['mob','Mobility','BODY','',['Recovery'],'tap',2,['Open=Neck and shoulder rolls.','Flow=Cat-cow and hip openers.','Hold=Deep hold on your tightest area.']],
+['code','Coding challenge','SKILL','',['Skill','Focus'],'text',5,['Read=Read the problem twice.','Build=Write the solution, no copy-paste.','Test=Test an edge case, then refactor one line.']],
+['draw','Drawing','SKILL','',['Skill'],'tap',3,['Warm up=Loose lines and circles.','Study=Draw one object from life.|Gesture sketches, {s} seconds each.','Review=Mark the one thing to fix next.']],
+['music','Music practice','SKILL','',['Skill'],'tap',3,['Tune=Set up and tune.','Drill=Slow scales or a hard bar, {n} reps.','Play=Run one piece start to finish.']],
+['korin','Korin reaction','SKILL','TAP',['Skill','Discipline'],'reps',5,['Observe=Settle your stance and watch the cue.','Reaction=Respond to cues, {n} reps.','Footwork=Move and reset between cues.','Counter=Counter on each cue, {n} reps.','Recover=Breathe down to a slow count.']],
+['roshi','Roshi form','SKILL','TAP',['Skill','Discipline'],'tap',5,['Basics=Slow form, one clean pass.','Chain=Link {n} moves without a break.','Refine=Fix your weakest transition.']],
+['gohan','Grandpa Gohan basics','SKILL','TAP',['Discipline'],'tap',5,['Stance=Hold a low stance for {s} seconds.','Repeat=Repeat the basic strike {n} times.','Still=Stand still and breathe.']],
+['after','Afterimage','SKILL','TAP',['Skill','Focus'],'tap',5,['Fix=Stare at one point, no blinking.','Move=Shift and track without turning your head.','Reset=Close your eyes, replay it.']],
+['walk','Walk','RECOVERY','',['Recovery'],'tap',5,['Out=Leave the screen behind, walk out.','Move=Steady pace, eyes up.','Back=Slow down on the way back.']],
+['breathe','Breathing','RECOVERY','',['Recovery'],'tap',2,['Settle=Sit tall, hands on knees.','Breathe=In for 4, out for 6, {n} rounds.','Check=Notice your shoulders and drop them.']],
+['eyes','Eye rest','RECOVERY','',['Recovery'],'tap',2,['Far=Look at something far away.','Palm=Cover your eyes with warm palms.','Blink=Blink slowly {n} times.']],
+['journal','Journal','RECOVERY','',['Focus'],'text',3,['Dump=Write whatever is in your head.','Pick=Circle the one thing that matters.','Next=Write the next small action.']]
+];
+const ACTS=RAW.map(r=>({id:r[0],name:r[1],cat:r[2],sub:r[3],at:r[4],ck:r[5],min:r[6],ph:r[7]}));
+const $=s=>document.querySelector(s),esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fresh=()=>({ob:false,attr:{Discipline:0,Focus:0,Knowledge:0,Skill:0,Recovery:0},attrAt:{},catN:{},hist:[],custom:[],tasks:[{n:'Clean',m:10},{n:'Laundry',m:20},{n:'Cook',m:30},{n:'Errands',m:30}],st:'READY',stAt:0,ign:0,sent:{d:'',c:0,t:0},lastSess:0,lastMin:7,set:{cats:{BRAIN:1,BODY:1,SKILL:1,RECOVERY:1,LIFE:1},ex:[],qs:'22:00',qe:'07:00',cap:4,icap:5,rest:-1,notif:false}});
+const load=()=>{try{const d=JSON.parse(localStorage.getItem(K));if(d)return Object.assign(fresh(),d)}catch(e){}return fresh()};
+const save=()=>{try{localStorage.setItem(K,JSON.stringify(S))}catch(e){}};
+let S=load(),V='home',M=7,CF='ANY',SL=null,SS=null,TM=null,N=0,RR=0,tried=[],MSG='',RES=null,WL=null,GOALS=[];
+const today=()=>new Date().toLocaleDateString('en-CA'),acts=()=>ACTS.concat(S.custom);
+const lvl=x=>Math.floor(Math.sqrt(x/10))+1,thr=L=>10*(L-1)**2;
+const stateNow=()=>Date.now()-S.stAt>72e5?'READY':S.st;
+function xpFor(m){for(let i=1;i<XPT.length;i++){const[a,b]=XPT[i-1],[c,d]=XPT[i];if(m<=c)return Math.round(b+(d-b)*(m-a)/(c-a))}return Math.round(120+(m-60)*2)}
+function decay(){const n=Date.now(),D=864e5;ATTRS.forEach(a=>{const t=S.attrAt[a];if(!t)return;const idle=Math.floor((n-t)/D);if(idle>7){const f=thr(lvl(S.attr[a]));S.attr[a]=Math.max(f,Math.floor(S.attr[a]*Math.pow(.98,idle-7)));S.attrAt[a]=t+(idle-7)*D}});save()}
+function streak(){const ds=new Set(S.hist.filter(h=>h.c).map(h=>h.d));let d=new Date(),n=0,first=true;for(let k=0;k<400;k++){const s=d.toLocaleDateString('en-CA');if(ds.has(s))n++;else if(d.getDay()==S.set.rest){}else if(!first)break;first=false;d.setDate(d.getDate()-1)}return n}
+const wk=()=>S.hist.filter(h=>h.c&&Date.now()-h.t<6048e5).reduce((a,h)=>a+h.m,0);
+function bestTask(m){return S.tasks.filter(t=>t.m<=m).sort((x,y)=>y.m-x.m)[0]}
+function pick(){
+ const en=S.set.cats,ex=S.set.ex;
+ let pool=acts().filter(a=>en[a.cat]&&!ex.includes(a.id)&&a.min<=M&&(CF==='ANY'||a.cat===CF));
+ const t=bestTask(M);
+ if(en.LIFE&&t&&(CF==='ANY'||CF==='LIFE'))pool.push({id:'life',name:t.n,task:t.n,cat:'LIFE',sub:'',at:['Discipline'],ck:'tap',min:2,ph:[]});
+ pool=pool.filter(a=>!tried.includes(a.id));
+ const h=S.hist,rid=h.slice(-3).map(x=>x.id),rc=h.slice(-3).map(x=>x.cat);
+ let p=pool.filter(a=>!rid.includes(a.id)&&!(rc.length==3&&rc.every(c=>c===a.cat)&&a.cat===rc[0]));
+ if(!p.length)p=pool;if(!p.length)return null;
+ const w=p.map(a=>1/(1+S.attr[a.at[0]]));let r=Math.random()*w.reduce((x,y)=>x+y,0);
+ for(let i=0;i<p.length;i++){r-=w[i];if(r<=0)return p[i]}return p[p.length-1]}
+function inten(a){let b=Math.min(5,1+Math.floor((S.catN[a.cat]||0)/5),S.set.icap);if(stateNow()==='LOW')b=Math.min(b,3);return Math.max(1,Math.min(5,b+N))}
+function make(a,m,i){
+ const ph=a.id==='life'?[[a.task,'Work on: '+a.task]]:a.ph.map(s=>{const[n,o]=s.split('='),op=o.split('|');return[n,op[Math.floor(Math.random()*op.length)]]});
+ const tot=m*60,k=ph.length,b=Math.floor(tot/k);
+ return ph.map((p,x)=>({n:p[0],t:p[1].replace(/\{n\}/g,i*4).replace(/\{s\}/g,i*15),d:b+(x==k-1?tot-b*k:0)}))}
+function go(m){m=Math.floor(m)||0;if(m<2){MSG='Enter at least 2 minutes.';return draw()}
+ M=BUCKETS.filter(b=>b<=m).pop();if(m>60)M=60;S.lastMin=M;RR=0;N=0;tried=[];MSG=m!==M?'Rounded down to '+M+' min.':'';
+ SL=pick();if(!SL){MSG='Nothing fits. Enable categories in Settings.';V='home'}else V='slot';draw()}
+function reroll(){if(RR>=2)return;tried.push(SL.id);const n=pick();if(n){SL=n;RR++;MSG=''}else MSG='No other activity fits.';draw()}
+const nud=d=>{N=Math.max(-1,Math.min(1,N+d));draw()};
+function start(){const i=inten(SL);SS={a:SL,m:M,i,steps:make(SL,M,i),k:0,se:0,el:0,pz:false,pu:false,pat:0,ir:false,mn:false,last:Date.now(),cf:false};S.lastSess=Date.now();S.ign=0;save();V='session';MSG='';
+ try{navigator.wakeLock.request('screen').then(l=>WL=l).catch(()=>{})}catch(e){}
+ clearInterval(TM);TM=setInterval(tick,250);draw()}
+const rel=()=>{try{WL&&WL.release();WL=null}catch(e){}};
+function tick(){if(!SS||SS.cf)return;const n=Date.now(),k0=SS.k;
+ if(SS.pz&&SS.mn&&n-SS.pat>=6e4){SS.pz=false;SS.mn=false}
+ if(!SS.pz){const d=Math.min(n-SS.last,1000);SS.el+=d;SS.se+=d;
+  if(SS.se>=SS.steps[SS.k].d*1000){SS.k++;SS.se=0;if(SS.k>=SS.steps.length){SS.cf=true;clearInterval(TM);rel();V='confirm';try{navigator.vibrate(200)}catch(e){}}}}
+ SS.last=n;if(SS.cf||SS.k!==k0)return draw();upd()}
+function upd(){if(V!=='session'||!SS)return;const s=SS.steps[SS.k],r=Math.max(0,Math.ceil((s.d*1000-SS.se)/1000)),t=$('#tm');if(t)t.textContent=Math.floor(r/60)+':'+String(r%60).padStart(2,'0');const b=$('#pb');if(b)b.style.width=Math.min(100,SS.el/(SS.m*600))+'%'}
+function pause(){if(!SS)return;if(SS.pz&&!SS.ir){SS.pz=false;SS.mn=false;SS.last=Date.now()}else if(!SS.pu){SS.pz=true;SS.pu=true;SS.mn=true;SS.pat=Date.now()}draw()}
+const resume=()=>{SS.pz=false;SS.ir=false;SS.last=Date.now();draw()};
+function skip(){SS.k++;SS.se=0;SS.last=Date.now();if(SS.k>=SS.steps.length){SS.cf=true;clearInterval(TM);rel();V='confirm'}draw()}
+function endEarly(){if(!confirm('End this session? Under 50% elapsed earns no XP.'))return;clearInterval(TM);rel();finish(false,true)}
+function submitC(ok){const ck=SS.a.ck;if(ok){if(ck==='reps'&&!(+$('#cv').value>=1)){MSG='Enter your reps or score.';return draw()}if(ck==='text'&&$('#cv').value.trim().length<3){MSG='Write a short line to confirm.';return draw()}}finish(ok,false)}
+function finish(conf,ab){
+ const frac=Math.min(1,SS.el/(SS.m*60000)),a=SS.a,cf=conf&&frac>=.8,full=xpFor(SS.m);
+ const xp=cf?full:(ab&&frac>=.5?Math.round(full*frac):0),bf={};ATTRS.forEach(x=>bf[x]=lvl(S.attr[x]));
+ if(xp){S.attr[a.at[0]]+=xp;S.attrAt[a.at[0]]=Date.now();if(a.at[1]){S.attr[a.at[1]]+=Math.round(xp/2);S.attrAt[a.at[1]]=Date.now()}}
+ if(cf)S.catN[a.cat]=(S.catN[a.cat]||0)+1;
+ S.hist.push({t:Date.now(),d:today(),id:a.id,name:a.name,cat:a.cat,m:SS.m,i:SS.i,st:stateNow(),c:cf?1:0,xp});
+ RES={xp,cf,ab,short:conf&&!cf,up:ATTRS.filter(x=>lvl(S.attr[x])>bf[x]).map(x=>x+' reached level '+lvl(S.attr[x]))};
+ save();SS=null;V='result';MSG='';draw()}
+document.addEventListener('visibilitychange',()=>{if(!SS||SS.cf)return;if(document.hidden&&!SS.pz){SS.pz=true;SS.ir=true;SS.mn=false}else if(!document.hidden&&SS.ir){SS.last=Date.now();draw()}});
+const quiet=()=>{const n=new Date(),c=n.getHours()*60+n.getMinutes(),f=t=>{const[h,m]=t.split(':');return +h*60+ +m},a=f(S.set.qs),b=f(S.set.qe);return a<=b?c>=a&&c<b:c>=a||c<b};
+function ntick(){try{if(!S.set.notif||Notification.permission!=='granted'||SS)return;const n=Date.now();if(S.sent.d!==today())S.sent={d:today(),c:0,t:S.sent.t};
+ if(quiet()||S.sent.c>=S.set.cap||S.ign>=3||n-S.lastSess<54e5||n-S.sent.t<36e5)return;
+ const m=S.lastMin||7,x=new Notification('WorkWell','You have '+m+' minutes. TRAIN?');x.onclick=()=>{window.focus();go(m)};S.sent.c++;S.sent.t=n;S.ign++;save()}catch(e){}}
+const chip=(t,on,f)=>`<button class="chip ${on?'on':''}" onclick="${f}">${t}</button>`;
+const setSt=x=>{S.st=x;S.stAt=Date.now();save();draw()},setCF=x=>{CF=x;draw()};
+function v_home(){return`<h1>How much time do you have?</h1><div class="g">${BUCKETS.map(b=>`<button class="b ${b==S.lastMin?'on':''}" onclick="go(${b})">${b}<small>min</small></button>`).join('')}</div>
+<div class="row"><input id="cm" type="number" min="2" max="180" inputmode="numeric" placeholder="Other minutes" aria-label="Other minutes"><button onclick="go(+$('#cm').value)">Go</button></div>
+<p class="warn">${esc(MSG)}</p><h3>State</h3><div class="chips">${['READY','LOW','WIRED'].map(x=>chip(x,stateNow()==x,`setSt('${x}')`)).join('')}</div>
+<h3>Category</h3><div class="chips">${['ANY'].concat(CATS.filter(c=>S.set.cats[c])).map(c=>chip(c,CF==c,`setCF('${c}')`)).join('')}</div>
+<p class="m">Streak: ${streak()} days. This week: ${wk()} min.</p>`}
+function v_slot(){const a=SL;return`<p class="m">${M} MIN AVAILABLE</p><div class="card"><div>${ICO[a.cat]} ${a.cat}${a.sub?' / '+a.sub:''}</div><h1>${esc(a.name)}</h1><p class="m">About ${M} minutes</p><div class="int">Intensity <button onclick="nud(-1)" aria-label="Lower intensity">−</button><b>${inten(a)}</b><button onclick="nud(1)" aria-label="Raise intensity">+</button></div></div>
+<button class="start" onclick="start()">START</button>${RR<2?`<button class="ghost" onclick="reroll()">DIFFERENT ACTIVITY (${2-RR} left)</button>`:'<p class="m">No rerolls left. Start or exit.</p>'}
+<p class="warn">${esc(MSG)}</p><button class="ghost" onclick="V='home';MSG='';draw()">Exit</button>`}
+function v_session(){const s=SS.steps[SS.k],r=Math.max(0,Math.ceil((s.d*1000-SS.se)/1000));
+ return`<p class="m">${esc(SS.a.name)}. Step ${SS.k+1} of ${SS.steps.length}</p><h1>${esc(s.n)}</h1><div class="tm" id="tm">${Math.floor(r/60)}:${String(r%60).padStart(2,'0')}</div><div class="bar"><i id="pb" style="width:${Math.min(100,SS.el/(SS.m*600))}%"></i></div><p>${esc(s.t)}</p>
+${SS.ir?`<div class="ov"><b>Interrupted.</b> The timer is paused.<div class="row" style="margin-top:8px"><button onclick="resume()">Resume</button><button onclick="endEarly()">Exit</button></div></div>`:`<div class="row"><button onclick="pause()">${SS.pz?'Resume':SS.pu?'Pause used':'Pause (60s)'}</button><button onclick="skip()">Skip step</button><button onclick="endEarly()">End</button></div><p class="m">Skipped time does not count toward XP.</p>`}`}
+function v_confirm(){const ck=SS.a.ck,f=ck==='reps'?'<label>Reps or score<input id="cv" type="number" min="1" inputmode="numeric"></label>':ck==='text'?'<label>One line: what did you do?<input id="cv" maxlength="140"></label>':'<p>Did you complete it?</p>';
+ return`<h1>Confirm</h1><p class="m">${esc(SS.a.name)}, ${Math.round(SS.el/60000*10)/10} min active of ${SS.m}.</p>${f}<p class="warn">${esc(MSG)}</p><button class="start" onclick="submitC(true)">${ck==='tap'?'I DID IT':'CONFIRM'}</button><button class="ghost" onclick="submitC(false)">Not really</button>`}
+function v_result(){const r=RES;return`<h1>${r.xp?'+'+r.xp+' XP':'0 XP'}</h1><p>${r.cf?'Confirmed.':r.ab?(r.xp?'Ended early. Partial XP.':'Ended under 50%. No XP.'):r.short?'Confirmed, but under 80% of the slot was active. No XP.':'Not confirmed. No XP.'}</p>${r.up.map(u=>`<p class="warn">${esc(u)}</p>`).join('')}<button class="start" onclick="go(S.lastMin)">TRAIN AGAIN</button><button class="ghost" onclick="V='home';draw()">Done</button>`}
+function v_profile(){const h=S.hist.slice(-20).reverse();return`<h1>Profile</h1><p class="m">Streak: ${streak()} days. This week: ${wk()} min.</p><h3>Attributes</h3>${ATTRS.map(a=>{const L=lvl(S.attr[a]),p=100*(S.attr[a]-thr(L))/(thr(L+1)-thr(L));return`<div class="at"><span>${a}</span><div class="bar" style="margin:0"><i style="width:${p}%"></i></div><b>L${L}</b></div>`}).join('')}
+<h3>Recent sessions</h3>${h.length?`<table><tr><th>Activity</th><th>Min</th><th>XP</th><th>Done</th></tr>${h.map(x=>`<tr><td>${esc(x.name)}</td><td>${x.m}</td><td>${x.xp}</td><td>${x.c?'yes':'no'}</td></tr>`).join('')}</table>`:'<p class="m">No sessions yet. Pick a time and start.</p>'}<button class="ghost" onclick="csv()">Export CSV</button>`}
+function csv(){const q=v=>'"'+String(v).replace(/"/g,'""')+'"',rows=[['time','activity','category','minutes','intensity','state','confirmed','xp']].concat(S.hist.map(h=>[new Date(h.t).toISOString(),h.name,h.cat,h.m,h.i,h.st,h.c,h.xp]));
+ const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([rows.map(r=>r.map(q).join(',')).join('\n')],{type:'text/csv'}));a.download='workwell-history.csv';a.click()}
+const tgl=id=>{const e=S.set.ex,i=e.indexOf(id);i<0?e.push(id):e.splice(i,1);save()};
+function v_lib(){const all=acts();return`<h1>Library</h1>`+CATS.filter(c=>c!=='LIFE').map(c=>`<h3>${ICO[c]} ${c}</h3>`+all.filter(a=>a.cat===c).map(a=>`<label class="li"><input type="checkbox" ${S.set.ex.includes(a.id)?'':'checked'} onchange="tgl('${a.id}')"> <span>${esc(a.name)} <small class="m">${a.sub?a.sub+', ':''}${a.min}+ min</small></span>${a.id[0]==='c'&&!ACTS.some(x=>x.id===a.id)?`<button onclick="rmC('${a.id}')" aria-label="Remove">✕</button>`:''}</label>`).join('')).join('')+
+`<h3>${ICO.LIFE} LIFE tasks</h3>${S.tasks.map((t,i)=>`<div class="li"><span style="flex:1">${esc(t.n)} <small class="m">${t.m} min</small></span><button onclick="S.tasks.splice(${i},1);save();draw()" aria-label="Remove">✕</button></div>`).join('')}<div class="row"><input id="tn" placeholder="Task"><input id="tmn" type="number" min="2" placeholder="Min" style="width:90px"><button onclick="addT()">Add</button></div>
+<h3>New cartridge</h3><label>Name<input id="cn"></label><label>Category<select id="cc">${CATS.filter(c=>c!=='LIFE').map(c=>`<option>${c}</option>`).join('')}</select></label><label>Primary attribute<select id="ca">${ATTRS.map(c=>`<option>${c}</option>`).join('')}</select></label><label>Minimum minutes<input id="cmn" type="number" min="2" value="5"></label><label>Completion check<select id="ck"><option value="tap">Tap</option><option value="reps">Reps or score</option><option value="text">One line</option></select></label><label>Steps, one per line as Name: prompt<textarea id="cs" rows="4"></textarea></label><p class="warn">${esc(MSG)}</p><button onclick="addC()">Add cartridge</button>`}
+function addT(){const n=$('#tn').value.trim(),m=Math.floor(+$('#tmn').value);if(!n||m<2)return;S.tasks.push({n,m});save();draw()}
+function addC(){const n=$('#cn').value.trim(),ph=$('#cs').value.split('\n').map(l=>l.trim()).filter(Boolean).map(l=>{const i=l.indexOf(':');return i>0?l.slice(0,i).trim()+'='+l.slice(i+1).trim().replace(/\|/g,'/'):'Step='+l.replace(/\|/g,'/')});
+ if(!n||!ph.length){MSG='Add a name and at least one step.';return draw()}MSG='';S.custom.push({id:'c'+Date.now(),name:n,cat:$('#cc').value,sub:'',at:[$('#ca').value],ck:$('#ck').value,min:Math.max(2,Math.floor(+$('#cmn').value)||5),ph});save();draw()}
+const rmC=id=>{S.custom=S.custom.filter(a=>a.id!==id);save();draw()};
+function v_set(){const s=S.set;return`<h1>Settings</h1><h3>Enabled categories</h3>${CATS.map(c=>`<label class="li"><input type="checkbox" ${s.cats[c]?'checked':''} onchange="S.set.cats['${c}']=this.checked?1:0;save()"> ${ICO[c]} ${c}</label>`).join('')}
+<h3>Quiet hours</h3><div class="row"><input type="time" value="${s.qs}" aria-label="Quiet start" onchange="S.set.qs=this.value;save()"><input type="time" value="${s.qe}" aria-label="Quiet end" onchange="S.set.qe=this.value;save()"></div>
+<label>Daily notification cap<input type="number" min="0" max="12" value="${s.cap}" onchange="S.set.cap=Math.max(0,+this.value||0);save()"></label>
+<label>Intensity cap<select onchange="S.set.icap=+this.value;save()">${[1,2,3,4,5].map(i=>`<option ${i==s.icap?'selected':''}>${i}</option>`).join('')}</select></label>
+<label>Rest day (keeps your streak)<select onchange="S.set.rest=+this.value;save()"><option value="-1">None</option>${['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'].map((d,i)=>`<option value="${i}" ${i==s.rest?'selected':''}>${d}</option>`).join('')}</select></label>
+<h3>Reminders</h3><p class="m">Prompts appear only while this page is open. ${s.notif?'Enabled.':'Off.'}</p><button onclick="enN()">${s.notif?'Turn off':'Enable'} reminders</button>
+<h3>Data</h3><button onclick="if(confirm('Erase all progress?')){S=fresh();save();V='ob';draw()}">Reset everything</button>`}
+function enN(){if(S.set.notif){S.set.notif=false;save();return draw()}try{Notification.requestPermission().then(p=>{S.set.notif=p==='granted';save();draw()})}catch(e){MSG='Notifications are not supported here.';draw()}}
+function v_ob(){return`<h1>Set up in 30 seconds</h1><h3>What do you want to train?</h3><div class="chips">${CATS.map(c=>chip(ICO[c]+' '+c,GOALS.includes(c),`tg('${c}')`)).join('')}</div><h3>Your starting level</h3><div class="chips">${[['New',0],['Some experience',5],['Experienced',15]].map((x,i)=>chip(x[0],OL==x[1],`OL=${x[1]};draw()`)).join('')}</div><p class="warn">${esc(MSG)}</p><button class="start" style="margin-top:20px" onclick="obDone()">START FIRST SESSION</button>`}
+let OL=0;const tg=c=>{const i=GOALS.indexOf(c);i<0?GOALS.push(c):GOALS.splice(i,1);draw()};
+function obDone(){if(!GOALS.length){MSG='Pick at least one category.';return draw()}CATS.forEach(c=>{S.set.cats[c]=GOALS.includes(c)?1:0;if(GOALS.includes(c))S.catN[c]=OL});S.ob=true;save();CF='ANY';go(5)}
+function draw(){const v={home:v_home,slot:v_slot,session:v_session,confirm:v_confirm,result:v_result,profile:v_profile,lib:v_lib,set:v_set,ob:v_ob}[V];
+ const nav=['session','confirm','ob'].includes(V)?'':`<nav>${[['home','Train'],['profile','Profile'],['lib','Library'],['set','Settings']].map(x=>`<button class="${V===x[0]||(x[0]==='home'&&['slot','result'].includes(V))?'on':''}" onclick="V='${x[0]}';MSG='';draw()">${x[1]}</button>`).join('')}</nav>`;
+ $('#app').innerHTML=v()+nav;const f=$('#cv');if(f)f.focus()}
+decay();if(!S.ob)V='ob';
+const hm=location.hash.match(/m=(\d+)/);if(hm&&S.ob)go(+hm[1]);else draw();
+setInterval(ntick,6e4);
+</script>
+</body>
+</html>
